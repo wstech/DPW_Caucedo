@@ -37,9 +37,9 @@ import com.navis.services.business.rules.EventType
  *	c) Add as groovy code - DpwCauGvyBillableEvntForVerificationZone
  *	d) Paste the groovy code and click on save
  *
- * @Set up the groovy job to be scheduled for an hour 22:00 to call this groovy.
+ * @ Set up the groovy job to be scheduled for an hour 22:00 to call this groovy.
  *
- * @Set up General Reference of  Type as "DPWCAUYARDBLK" and  Identifier1 as "YardBlock",Identifier2 as "GRPCODE" and value with list of yardblock in value 1, list of group code in value2.
+ * @ Set up General Reference of  Type as "DPWCAUYARDBLK" and  Identifier1 as "YardBlock",Identifier2 as "GRPCODE" and value with list of yardblock in value 1, list of group code in value2.
  *
  */
 class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
@@ -51,34 +51,31 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 		log("DpwCauGvyBillableEvntForVerificationZone Execution Started");
 		long startTime = System.currentTimeMillis();
 
-		//Fetching the yard block or zone,from General Reference.
+		//Fetching the yard block or zone and list of group id from General Reference.
 		GeneralReference generalReference = GeneralReference.findUniqueEntryById("DPWCAUYARDBLK", "YARDBLOCK","GRPCODE",null)
 
 
 		if (generalReference != null) {
 			String blockId = generalReference.getRefValue1() != null ?  generalReference.getRefValue1() : null;
 			String groupId = generalReference.getRefValue2() != null ?  generalReference.getRefValue2() : null;
-			log("DpwCauGvyBillableEvntForVerificationZone groupId : "+groupId);
+
 			List<String> groupIds   = Arrays.asList(groupId.split(","));
 			List<String> blockIdList   = Arrays.asList(blockId.split(","));
 			List<Long> groupKeys   = findGrpKeyList(groupIds);
+			// Fetching the list of units to process based on the groupkey
 			List<Unit> unitList = findUnitsToProcess(groupKeys);
+
 			if(unitList != null) {
 				for(Unit currentUnit : unitList) {
-					log("DpwCauGvyBillableEvntForVerificationZone currentUnit : "+currentUnit);
 					UnitFacilityVisit ufv = currentUnit.getUnitActiveUfv();
-					log("DpwCauGvyBillableEvntForVerificationZone ufv : "+ufv);
-
 					if(ufv != null && (UfvTransitStateEnum.S40_YARD.equals(ufv.getUfvTransitState()))) {
-
 						if(ufv.getUfvLastKnownPosition()  != null && blockIdList.contains(ufv.getUfvLastKnownPosition().getBlockName())){
-							log("DpwCauGvyBillableEvntForVerificationZone  yardBlockId matched record an event: "+ufv.getUfvLastKnownPosition().getBlockName());
 							Group grp = currentUnit.getUnitRouting()  != null ? currentUnit.getUnitRouting().getRtgGroup() : null;
 							String grpId = null;
 							if(grp != null){
 								grpId = grp.getGrpId();
 							}
-
+							// record an billable event "NSWVERIF" once it satisifies the above condition (Matches the zone in YARD and with the group code)
 							recordEvent("NSWVERIF", currentUnit, "Unit from Verification Zone :" + ufv.getUfvLastKnownPosition().getBlockName() +" with the Specified Group code :"+ grpId);
 						}
 					}
@@ -88,8 +85,6 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 
 		long endTime = System.currentTimeMillis();
 		log("DpwCauGvyBillableEvntForVerificationZone Execution Completed in :" + (endTime - startTime) / 1000 + " secs.");
-
-
 	}
 
 
@@ -128,8 +123,6 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 	}
 
 
-
-
 	/*
 	 * This method is used to record an event on Unit.
 	 * @param inEventTypeId, @param inUnit
@@ -142,7 +135,5 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 			srvcMgr.recordEvent(eventType, inNotes, null, null, inUnit)
 		}
 	}
-
-
 
 }
