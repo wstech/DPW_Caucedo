@@ -22,6 +22,7 @@ import com.navis.inventory.business.atoms.UfvTransitStateEnum
 import com.navis.inventory.business.atoms.UnitVisitStateEnum
 import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
+import com.navis.inventory.util.TransitStateQueryUtil;
 import com.navis.mensa.business.mensa.YardBlock
 import com.navis.services.business.rules.EventType
 import com.navis.spatial.business.model.AbstractBin
@@ -45,7 +46,7 @@ import com.navis.spatial.business.model.block.BinModelHelper
  *
  * @Set up the groovy job to be scheduled for an hour 22:00 to call this groovy.
  *
- * @Set up General Reference of  Type as "DPWCAUYARDBLK" and Identifier1 as "GRPCODE" and value with list of yardblock in value 1, list of group code in value2.
+ * @Set up General Reference of  Type as "DPWCAUYARDBLK" and  Identifier1 as "YardBlock",Identifier2 as "GRPCODE" and value with list of yardblock in value 1, list of group code in value2.
  *
  */
 class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
@@ -58,7 +59,7 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 		long startTime = System.currentTimeMillis();
 
 		//Fetching the yard block or zone,from General Reference.
-		GeneralReference generalReference = GeneralReference.findUniqueEntryById("DPWCAUYARDBLK", "GRPCODE",null,null)
+		GeneralReference generalReference = GeneralReference.findUniqueEntryById("DPWCAUYARDBLK", "YARDBLOCK","GRPCODE",null)
 
 
 		if (generalReference != null) {
@@ -74,27 +75,23 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 					log("DpwCauGvyBillableEvntForVerificationZone currentUnit : "+currentUnit);
 					UnitFacilityVisit ufv = currentUnit.getUnitActiveUfv();
 					log("DpwCauGvyBillableEvntForVerificationZone ufv : "+ufv);
-					if(ufv != null) {
+					
+					if(ufv != null && (UfvTransitStateEnum.S40_YARD.equals(ufv.getUfvTransitState()))) {
 						YardBlock yardBlock = getYardBlock(ufv.getUfvLastKnownPosition());
 						String yardBlockId = yardBlock != null ? yardBlock.getYbBlockId() : null;
 						log("DpwCauGvyBillableEvntForVerificationZone yardBlockId : "+yardBlockId);
 						if(ufv.getUfvLastKnownPosition() != null) {
-								log("DpwCauGvyBillableEvntForVerificationZone yardBlock Name : "+ ufv.getUfvLastKnownPosition().getBlockName());
+							log("DpwCauGvyBillableEvntForVerificationZone yardBlock Name : "+ ufv.getUfvLastKnownPosition().getBlockName());
 						}
 						if(blockId != null && blockIdList.contains(yardBlockId)){
 							log("DpwCauGvyBillableEvntForVerificationZone  yardBlockId matched record an event: "+yardBlockId);
 							recordEvent("NSWVERIF", currentUnit, "Unit from NSWVERIF Zone with the Specified Group code");
 						}
-
 					}
-
+					
 				}
 			}
-
-
 		}
-
-
 
 		long endTime = System.currentTimeMillis();
 		log("DpwCauGvyBillableEvntForVerificationZone Execution Completed in :" + (endTime - startTime) / 1000 + " secs.");
@@ -130,7 +127,6 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 	private List<Unit> findUnitsToProcess(List<Long> groupKeys){
 		DomainQuery dq = QueryUtils.createDomainQuery("Unit")
 				.addDqPredicate(PredicateFactory.eq(UnitField.UNIT_VISIT_STATE, UnitVisitStateEnum.ACTIVE))
-				.addDqPredicate(PredicateFactory.eq(UnitField.UFV_TRANSIT_STATE, UfvTransitStateEnum.S40_YARD))
 				.addDqPredicate(PredicateFactory.eq(UnitField.UNIT_CATEGORY, UnitCategoryEnum.IMPORT))
 				.addDqPredicate(PredicateFactory.eq(UnitField.UNIT_FREIGHT_KIND, FreightKindEnum.FCL))
 				.addDqPredicate(PredicateFactory.in(UnitField.UNIT_RTG_GROUP, groupKeys));
