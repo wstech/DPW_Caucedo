@@ -9,9 +9,7 @@ import com.navis.argo.business.api.GroovyApi
 import com.navis.argo.business.api.ServicesManager
 import com.navis.argo.business.atoms.FreightKindEnum
 import com.navis.argo.business.atoms.UnitCategoryEnum
-import com.navis.argo.business.model.Facility
 import com.navis.argo.business.model.GeneralReference
-import com.navis.argo.business.model.LocPosition
 import com.navis.argo.business.reference.Group
 import com.navis.framework.business.Roastery
 import com.navis.framework.portal.QueryUtils
@@ -22,12 +20,7 @@ import com.navis.inventory.business.atoms.UfvTransitStateEnum
 import com.navis.inventory.business.atoms.UnitVisitStateEnum
 import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
-import com.navis.inventory.util.TransitStateQueryUtil;
-import com.navis.mensa.business.mensa.YardBlock
 import com.navis.services.business.rules.EventType
-import com.navis.spatial.business.model.AbstractBin
-import com.navis.spatial.business.model.block.AbstractBlock
-import com.navis.spatial.business.model.block.BinModelHelper
 
 /*
  *
@@ -77,14 +70,9 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 					log("DpwCauGvyBillableEvntForVerificationZone ufv : "+ufv);
 					
 					if(ufv != null && (UfvTransitStateEnum.S40_YARD.equals(ufv.getUfvTransitState()))) {
-						YardBlock yardBlock = getYardBlock(ufv.getUfvLastKnownPosition());
-						String yardBlockId = yardBlock != null ? yardBlock.getYbBlockId() : null;
-						log("DpwCauGvyBillableEvntForVerificationZone yardBlockId : "+yardBlockId);
-						if(ufv.getUfvLastKnownPosition() != null) {
-							log("DpwCauGvyBillableEvntForVerificationZone yardBlock Name : "+ ufv.getUfvLastKnownPosition().getBlockName());
-						}
-						if(blockId != null && blockIdList.contains(yardBlockId)){
-							log("DpwCauGvyBillableEvntForVerificationZone  yardBlockId matched record an event: "+yardBlockId);
+						
+						if(ufv.getUfvLastKnownPosition()  != null && blockIdList.contains(ufv.getUfvLastKnownPosition().getBlockName())){
+							log("DpwCauGvyBillableEvntForVerificationZone  yardBlockId matched record an event: "+ufv.getUfvLastKnownPosition().getBlockName());
 							recordEvent("NSWVERIF", currentUnit, "Unit from NSWVERIF Zone with the Specified Group code");
 						}
 					}
@@ -135,34 +123,7 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 	}
 
 
-	/*
-	 * This method is used to find the Yard block by Passing an position of the Unit.
-	 * @param inPosition
-	 * @return YardBlock
-	 */
-	private  YardBlock getYardBlock(LocPosition inPosition)
-	{
-		YardBlock yb = null;
-
-
-		if (inPosition != null) {
-			AbstractBin yardBin = inPosition.getPosBin();
-
-
-			Facility fcy = inPosition.resolveFacility();
-			String blockName = "";
-			if (yardBin != null) {
-				AbstractBlock block = BinModelHelper.getBlockFromModelBin(yardBin);
-				if (block != null) {
-					blockName = block.getBlockName();
-					yb = YardBlock.findYardBlock(fcy, blockName);
-				}
-			} else {
-				log("Yard block information - Unable to retrieve due to ill formatted From/ To position");
-			}
-		}
-		return yb;
-	}
+	
 
 	/*
 	 * This method is used to record an event on Unit.
