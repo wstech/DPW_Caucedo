@@ -68,15 +68,20 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 					log("DpwCauGvyBillableEvntForVerificationZone currentUnit : "+currentUnit);
 					UnitFacilityVisit ufv = currentUnit.getUnitActiveUfv();
 					log("DpwCauGvyBillableEvntForVerificationZone ufv : "+ufv);
-					
+
 					if(ufv != null && (UfvTransitStateEnum.S40_YARD.equals(ufv.getUfvTransitState()))) {
-						
+
 						if(ufv.getUfvLastKnownPosition()  != null && blockIdList.contains(ufv.getUfvLastKnownPosition().getBlockName())){
 							log("DpwCauGvyBillableEvntForVerificationZone  yardBlockId matched record an event: "+ufv.getUfvLastKnownPosition().getBlockName());
-							recordEvent("NSWVERIF", currentUnit, "Unit from NSWVERIF Zone with the Specified Group code");
+							Group grp = currentUnit.getUnitRouting()  != null ? currentUnit.getUnitRouting().getRtgGroup() : null;
+							String grpId = null;
+							if(grp != null){
+								grpId = grp.getGrpId();
+							}
+
+							recordEvent("NSWVERIF", currentUnit, "Unit from Verification Zone :" + ufv.getUfvLastKnownPosition().getBlockName() +" with the Specified Group code :"+ grpId);
 						}
 					}
-					
 				}
 			}
 		}
@@ -123,7 +128,7 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 	}
 
 
-	
+
 
 	/*
 	 * This method is used to record an event on Unit.
