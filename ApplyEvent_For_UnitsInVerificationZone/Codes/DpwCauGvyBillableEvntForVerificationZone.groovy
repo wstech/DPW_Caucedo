@@ -39,7 +39,7 @@ import com.navis.services.business.rules.EventType
  *
  * @ Set up the groovy job to be scheduled for an hour 22:00 to call this groovy.
  *
- * @ Set up General Reference of  Type as "DPWCAUYARDBLK" and  Identifier1 as "YardBlock",Identifier2 as "GRPCODE" and value with list of yardblock in value 1, list of group code in value2.
+ * @ Set up General Reference of  Type as "DPWCAUYARDBLK" and  Identifier1 as "YardBlock",Identifier2 as "GRPCODE",Identifier3 as "EVENTID" and value with list of yardblock in value 1 and value2, list of group code in value3 and event id in value 4.
  *
  */
 class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
@@ -52,34 +52,46 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 		long startTime = System.currentTimeMillis();
 
 		//Fetching the yard block or zone and list of group id from General Reference.
-		GeneralReference generalReference = GeneralReference.findUniqueEntryById("DPWCAUYARDBLK", "YARDBLOCK","GRPCODE",null)
+		GeneralReference generalReference = GeneralReference.findUniqueEntryById("DPWCAUYARDBLK", "YARDBLOCK","GRPCODE","EVENTID")
 
 
 		if (generalReference != null) {
-			String blockId = generalReference.getRefValue1() != null ?  generalReference.getRefValue1() : null;
-			String groupId = generalReference.getRefValue2() != null ?  generalReference.getRefValue2() : null;
+			StringBuffer blockId = new StringBuffer();
+			blockId.append(generalReference.getRefValue1() != null ?  generalReference.getRefValue1() : null);
+			blockId.append(generalReference.getRefValue2() != null ?  generalReference.getRefValue2() : null);
+
+			String groupId = generalReference.getRefValue3() != null ?  generalReference.getRefValue3() : null;
+			String eventId = generalReference.getRefValue4() != null ?  generalReference.getRefValue4() : null;
+
+
+			if(blockId == null || groupId == null || eventId == null){
+				log("DpwCauGvyBillableEvntForVerificationZone general reference configuration is invalid 1) Block Id : "+blockId  +"\n 2) Group Id : "+groupId +" 3) EventId : "+eventId);
+				return;
+			}
 
 			List<String> groupIds   = Arrays.asList(groupId.split(","));
 			List<String> blockIdList   = Arrays.asList(blockId.split(","));
 			List<Long> groupKeys   = findGrpKeyList(groupIds);
 			// Fetching the list of units to process based on the groupkey
-			List<Unit> unitList = findUnitsToProcess(groupKeys);
+			List<Unit> unitList = groupKeys != null ? findUnitsToProcess(groupKeys) : null;
 
 			if(unitList != null) {
 				for(Unit currentUnit : unitList) {
 					UnitFacilityVisit ufv = currentUnit.getUnitActiveUfv();
 					if(ufv != null && (UfvTransitStateEnum.S40_YARD.equals(ufv.getUfvTransitState()))) {
-						if(ufv.getUfvLastKnownPosition()  != null && blockIdList.contains(ufv.getUfvLastKnownPosition().getBlockName())){
+						if(ufv.getUfvLastKnownPosition()  != null && blockIdList != null && blockIdList.contains(ufv.getUfvLastKnownPosition().getBlockName())){
 							Group grp = currentUnit.getUnitRouting()  != null ? currentUnit.getUnitRouting().getRtgGroup() : null;
 							String grpId = null;
 							if(grp != null){
 								grpId = grp.getGrpId();
 							}
 							// record an billable event "NSWVERIF" once it satisifies the above condition (Matches the zone in YARD and with the group code)
-							recordEvent("NSWVERIF", currentUnit, "Unit from Verification Zone :" + ufv.getUfvLastKnownPosition().getBlockName() +" with the Specified Group code :"+ grpId);
+							recordEvent(eventId, currentUnit, "Unit from Verification Zone :" + ufv.getUfvLastKnownPosition().getBlockName() +" with the Specified Group code :"+ grpId);
 						}
 					}
 				}
+			} else {
+				log("DpwCauGvyBillableEvntForVerificationZone Unit List is empty for this block / group code");
 			}
 		}
 
@@ -95,8 +107,9 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 	 */
 
 	private  List<Long> findGrpKeyList(List<String> groupIds){
-		List<Long> grpKeyList = new ArrayList();
+		List<Long> grpKeyList = null;
 		if(groupIds != null){
+			grpKeyList = new ArrayList();
 			for(String grpId : groupIds) {
 				Group grp = Group.findGroup(grpId)
 				grpKeyList.add(grp.getGrpGkey());
