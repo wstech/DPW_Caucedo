@@ -26,7 +26,7 @@ import com.navis.services.business.rules.EventType
  *
  * @Author <a href="mailto:kgopinath@weservetech.com">Gopinath K</a>, 18/Sep/2017
  *
- * Requirements : This groovy is used to record a NSWVERIF billable event, while the job triggers this groovy and
+ * Requirements : This groovy is used to record a NSWVERIF billable event, while the job triggers this groovy and 
  * if it found the matching unit with the group code and yard block mention in the general reference.
  *
  * @Inclusion Location	: Incorporated as a groovy plugin extending GroovyApi as mention below:
@@ -39,7 +39,7 @@ import com.navis.services.business.rules.EventType
  *
  * @ Set up the groovy job to be scheduled for an hour 22:00 to call this groovy.
  *
- * @ Set up General Reference of  Type as "DPWCAUYARDBLK" and  Identifier1 as "YARDBLOCK",Identifier2 as "GRPCODE",Identifier3 as "EVENTID" and value with list of yardblock in value 1 and value2, list of group code in value3 and event id in value 4.
+ * @ Set up General Reference of  Type as "DPWCAUYARDBLK" and  Identifier1 as "YardBlock",Identifier2 as "GRPCODE",Identifier3 as "EVENTID" and value with list of yardblock in value 1 and value2, list of group code in value3 and event id in value 4.
  *
  */
 class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
@@ -52,15 +52,13 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 		long startTime = System.currentTimeMillis();
 
 		//Fetching the yard block or zone and list of group id from General Reference.
-		GeneralReference generalReference = GeneralReference.findUniqueEntryById("DPWCAUYARDBLK","YARDBLOCK","GRPCODE","EVENTID");
+		GeneralReference generalReference = GeneralReference.findUniqueEntryById("DPWCAUYARDBLK", "YARDBLOCK","GRPCODE","EVENTID")
+
 
 		if (generalReference != null) {
 			StringBuffer blockId = new StringBuffer();
 			blockId.append(generalReference.getRefValue1() != null ?  generalReference.getRefValue1() : null);
-				if(generalReference.getRefValue2() != null) {
-					blockId.append(",");
-					blockId.append(generalReference.getRefValue2());
-				}
+			blockId.append(generalReference.getRefValue2() != null ?  generalReference.getRefValue2() : null);
 
 			String groupId = generalReference.getRefValue3() != null ?  generalReference.getRefValue3() : null;
 			String eventId = generalReference.getRefValue4() != null ?  generalReference.getRefValue4() : null;
@@ -70,11 +68,13 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 				log("DpwCauGvyBillableEvntForVerificationZone general reference configuration is invalid 1) Block Id : "+blockId  +"\n 2) Group Id : "+groupId +" 3) EventId : "+eventId);
 				return;
 			}
+
 			List<String> groupIds   = Arrays.asList(groupId.split(","));
-			List<String> blockIdList   = Arrays.asList(blockId.toString().split(","));
+			List<String> blockIdList   = Arrays.asList(blockId.split(","));
 			List<Long> groupKeys   = findGrpKeyList(groupIds);
 			// Fetching the list of units to process based on the groupkey
 			List<Unit> unitList = groupKeys != null ? findUnitsToProcess(groupKeys) : null;
+
 			if(unitList != null) {
 				for(Unit currentUnit : unitList) {
 					UnitFacilityVisit ufv = currentUnit.getUnitActiveUfv();
