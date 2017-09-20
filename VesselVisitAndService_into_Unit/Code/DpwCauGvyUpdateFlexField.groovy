@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2017 WeServe LLC. All Rights Reserved.
  *
@@ -33,39 +32,37 @@ import com.navis.services.business.event.GroovyEvent
  */
 
 class DpwCauGvyUpdateFlexField extends AbstractGeneralNoticeCodeExtension {
-	private static final Logger LOGGER = Logger.getLogger(DpwCauGvyUpdateFlexField.class);
+    private static final Logger LOGGER = Logger.getLogger(DpwCauGvyUpdateFlexField.class);
 
-	public void execute(GroovyEvent inEvent) {
-		log("DpwCauGvyUpdateFlexField Execution Started")
-		long startTime = System.currentTimeMillis();
-		if (inEvent == null) {
-			return;
-		}
-		Event event = inEvent.getEvent();
-		if (event != null) {
-			Unit unit = (Unit) inEvent.getEntity();
-			if (unit != null && unitCategoryList.contains(unit.getUnitCategory()) && unit.getUnitActiveUfv() != null) {
-				if(UfvTransitStateEnum.S20_INBOUND.equals(unit.getUnitActiveUfv().getUfvTransitState())) {
-					if(unit.getUnitFlexString05() == null && unit.getUnitFlexString12() == null) {
-						if(unit.getInboundCv() != null && unit.getInboundCv().getCvCvd() != null && CarrierVisitPhaseEnum.INBOUND.equals(unit.getInboundCv().getCvVisitPhase())){
-							unit.setUnitFlexString05(unit.getInboundCv().getCvId());
-							if((unit.getInboundCv().getCvCvd() != null && unit.getInboundCv().getCvCvd().getCvdService() != null)){
-								unit.setUnitFlexString12(unit.getInboundCv().getCvCvd().getCvdService().getSrvcId());
-							}
-						}
-					}
-				}
-			}
-			long endTime = System.currentTimeMillis();
-			log("DpwCauGvyUpdateFlexField Execution Completed in :" + (endTime - startTime) / 1000 + " secs.");
-		}
-	}
+    public void execute(GroovyEvent inEvent) {
+        log("DpwCauGvyUpdateFlexField Execution Started")
+        long startTime = System.currentTimeMillis();
+        if (inEvent == null) {
+            return;
+        }
+        Event event = inEvent.getEvent();
+        if (event != null) {
+            Unit unit = (Unit) inEvent.getEntity();
+            if (unit != null && unitCategoryList.contains(unit.getUnitCategory()) && unit.getUnitActiveUfv() != null) {
+                if (UfvTransitStateEnum.S20_INBOUND.equals(unit.getUnitActiveUfv().getUfvTransitState())) {
+                        if (unit.getInboundCv() != null && unit.getInboundCv().getCvCvd() != null && CarrierVisitPhaseEnum.INBOUND.equals(unit.getInboundCv().getCvVisitPhase())) {
+                            unit.setUnitFlexString05(unit.getInboundCv().getCvId());
+                            if ((unit.getInboundCv().getCvCvd() != null && unit.getInboundCv().getCvCvd().getCvdService() != null)) {
+                                unit.setUnitFlexString12(unit.getInboundCv().getCvCvd().getCvdService().getSrvcId());
+                            }
+                        }
+                }
+            }
+            long endTime = System.currentTimeMillis();
+            log("DpwCauGvyUpdateFlexField Execution Completed in :" + (endTime - startTime) / 1000 + " secs.");
+        }
+    }
 
 
-	private static final List<UnitCategoryEnum> unitCategoryList = new ArrayList();
-	static {
-		unitCategoryList.add(UnitCategoryEnum.IMPORT);
-		unitCategoryList.add(UnitCategoryEnum.TRANSSHIP);
-		unitCategoryList.add(UnitCategoryEnum.THROUGH);
-	}
+    private static final List<UnitCategoryEnum> unitCategoryList = new ArrayList();
+    static {
+        unitCategoryList.add(UnitCategoryEnum.IMPORT);
+        unitCategoryList.add(UnitCategoryEnum.TRANSSHIP);
+        unitCategoryList.add(UnitCategoryEnum.THROUGH);
+    }
 }
