@@ -2,8 +2,7 @@
  * Copyright (c) 2017 WeServe LLC. All Rights Reserved.
  *
  */
-import org.apache.log4j.Level
-import org.apache.log4j.Logger
+
 
 import com.navis.argo.business.api.GroovyApi
 import com.navis.argo.business.api.ServicesManager
@@ -15,12 +14,15 @@ import com.navis.framework.business.Roastery
 import com.navis.framework.portal.QueryUtils
 import com.navis.framework.portal.query.DomainQuery
 import com.navis.framework.portal.query.PredicateFactory
+import com.navis.inventory.InventoryEntity
 import com.navis.inventory.business.api.UnitField
 import com.navis.inventory.business.atoms.UfvTransitStateEnum
 import com.navis.inventory.business.atoms.UnitVisitStateEnum
 import com.navis.inventory.business.units.Unit
 import com.navis.inventory.business.units.UnitFacilityVisit
 import com.navis.services.business.rules.EventType
+import org.apache.log4j.Level
+import org.apache.log4j.Logger
 
 /*
  *
@@ -56,42 +58,43 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 
 		if (generalReference != null) {
 			StringBuffer blockId = new StringBuffer();
-			blockId.append(generalReference.getRefValue1() != null ?  generalReference.getRefValue1() : null);
-				if(generalReference.getRefValue2() != null) {
-					blockId.append(",");
-					blockId.append(generalReference.getRefValue2());
-				}
+			blockId.append(generalReference.getRefValue1() != null ? generalReference.getRefValue1() : null);
+			if (generalReference.getRefValue2() != null) {
+				blockId.append(",");
+				blockId.append(generalReference.getRefValue2());
+			}
 
-			String groupId = generalReference.getRefValue3() != null ?  generalReference.getRefValue3() : null;
-			String eventId = generalReference.getRefValue4() != null ?  generalReference.getRefValue4() : null;
+			String groupId = generalReference.getRefValue3() != null ? generalReference.getRefValue3() : null;
+			String eventId = generalReference.getRefValue4() != null ? generalReference.getRefValue4() : null;
 
 
-			if(blockId == null || groupId == null || eventId == null){
-				log("DpwCauGvyBillableEvntForVerificationZone general reference configuration is invalid 1) Block Id : "+blockId  +"\n 2) Group Id : "+groupId +" 3) EventId : "+eventId);
+			if (blockId == null || groupId == null || eventId == null) {
+				log("DpwCauGvyBillableEvntForVerificationZone general reference configuration is invalid 1) Block Id : " + blockId + "\n 2) Group Id : " + groupId + " 3) EventId : " + eventId);
 				return;
 			}
-			List<String> groupIds   = Arrays.asList(groupId.split(","));
-			List<String> blockIdList   = Arrays.asList(blockId.toString().split(","));
-			List<Long> groupKeys   = findGrpKeyList(groupIds);
-			// Fetching the list of units to process based on the groupkey
-			List<Unit> unitList = groupKeys != null ? findUnitsToProcess(groupKeys) : null;
-			if(unitList != null) {
-				for(Unit currentUnit : unitList) {
-					UnitFacilityVisit ufv = currentUnit.getUnitActiveUfv();
-					if(ufv != null && (UfvTransitStateEnum.S40_YARD.equals(ufv.getUfvTransitState()))) {
-						if(ufv.getUfvLastKnownPosition()  != null && blockIdList != null && blockIdList.contains(ufv.getUfvLastKnownPosition().getBlockName())){
-							Group grp = currentUnit.getUnitRouting()  != null ? currentUnit.getUnitRouting().getRtgGroup() : null;
-							String grpId = null;
-							if(grp != null){
-								grpId = grp.getGrpId();
+			List<String> groupIds = Arrays.asList(groupId.split(","));
+			List<String> blockIdList = Arrays.asList(blockId.toString().split(","));
+			if (groupIds != null && groupIds.size() > 0 && blockIdList != null && blockIdList.size() > 0) {
+				List<Long> groupKeys = findGrpKeyList(groupIds);
+				// Fetching the list of units to process based on the groupkey
+				List<UnitFacilityVisit> ufvList = groupKeys != null ? findUnitsToProcess(groupKeys) : null;
+				if (ufvList != null) {
+					for (UnitFacilityVisit ufv : ufvList) {
+						if (ufv != null) {
+							if (ufv.getUfvLastKnownPosition() != null && blockIdList != null && blockIdList.contains(ufv.getUfvLastKnownPosition().getBlockName())) {
+								Group grp = ufv.getUfvUnit() !=null && ufv.getUfvUnit().getUnitRouting() != null ? ufv.getUfvUnit().getUnitRouting().getRtgGroup() : null;
+								String grpId = null;
+								if (grp != null) {
+									grpId = grp.getGrpId();
+								}
+								// record an billable event "NSWVERIF" once it satisifies the above condition (Matches the zone in YARD and with the group code)
+								recordEvent(eventId, ufv.getUfvUnit(), "Unit from Verification Zone :" + ufv.getUfvLastKnownPosition().getBlockName() + " with the Specified Group code :" + grpId);
 							}
-							// record an billable event "NSWVERIF" once it satisifies the above condition (Matches the zone in YARD and with the group code)
-							recordEvent(eventId, currentUnit, "Unit from Verification Zone :" + ufv.getUfvLastKnownPosition().getBlockName() +" with the Specified Group code :"+ grpId);
 						}
 					}
+				} else {
+					log("DpwCauGvyBillableEvntForVerificationZone Unit List is empty for this block / group code");
 				}
-			} else {
-				log("DpwCauGvyBillableEvntForVerificationZone Unit List is empty for this block / group code");
 			}
 		}
 
@@ -112,7 +115,8 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 			grpKeyList = new ArrayList();
 			for(String grpId : groupIds) {
 				Group grp = Group.findGroup(grpId)
-				grpKeyList.add(grp.getGrpGkey());
+				if (grp!=null)
+					grpKeyList.add(grp.getGrpGkey());
 			}
 		}
 		return grpKeyList;
@@ -125,14 +129,15 @@ class DpwCauGvyBillableEvntForVerificationZone extends GroovyApi {
 	 * @return List<Unit>
 	 */
 
-	private List<Unit> findUnitsToProcess(List<Long> groupKeys){
-		DomainQuery dq = QueryUtils.createDomainQuery("Unit")
-				.addDqPredicate(PredicateFactory.eq(UnitField.UNIT_VISIT_STATE, UnitVisitStateEnum.ACTIVE))
-				.addDqPredicate(PredicateFactory.eq(UnitField.UNIT_CATEGORY, UnitCategoryEnum.IMPORT))
-				.addDqPredicate(PredicateFactory.eq(UnitField.UNIT_FREIGHT_KIND, FreightKindEnum.FCL))
-				.addDqPredicate(PredicateFactory.in(UnitField.UNIT_RTG_GROUP, groupKeys));
-		List<Unit> unitList = Roastery.getHibernateApi().findEntitiesByDomainQuery(dq);
-		return unitList;
+	private List<UnitFacilityVisit> findUnitsToProcess(List<Long> groupKeys){
+		DomainQuery dq = QueryUtils.createDomainQuery(InventoryEntity.UNIT_FACILITY_VISIT)
+				.addDqPredicate(PredicateFactory.eq(UnitField.UFV_VISIT_STATE, UnitVisitStateEnum.ACTIVE))
+				.addDqPredicate(PredicateFactory.eq(UnitField.UFV_TRANSIT_STATE, UfvTransitStateEnum.S40_YARD))
+				.addDqPredicate(PredicateFactory.eq(UnitField.UFV_UNIT_CATEGORY, UnitCategoryEnum.IMPORT))
+				.addDqPredicate(PredicateFactory.eq(UnitField.UFV_FREIGHT_KIND, FreightKindEnum.FCL))
+				.addDqPredicate(PredicateFactory.in(UnitField.UFV_GROUP, groupKeys));
+		List<UnitFacilityVisit> ufvList = Roastery.getHibernateApi().findEntitiesByDomainQuery(dq);
+		return ufvList;
 	}
 
 
