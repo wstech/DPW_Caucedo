@@ -14,10 +14,9 @@ import com.navis.services.business.event.GroovyEvent
 
 /*
  *
- * @Author <a href="mailto:kgopinath@weservetech.com">Gopinath K</a>, 24/May/2017
+ * @Author <a href="mailto:kgopinath@weservetech.com">Gopinath K</a>, 20/Sep/2017
  *
- * Requirements : This groovy is used to record a SEAL_FIX event, when any seal starting with GT recorded against container after discharging
- *               from vessel and prior to delivery.
+ * Requirements : This groovy is used to update the I/B Carrier Name and Service code to the Unit. While the UNIT_ACTIVATE event is recorded.
  *
  * @Inclusion Location	: Incorporated as a code extension of the type GENERAL_NOTICE_CODE_EXTENSION as mention below.
  *
